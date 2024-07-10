@@ -108,4 +108,4 @@ st.markdown("[D3 체크리스트카드 다운로드 - 인쇄하여 사용하세�
 
 # 유튜브 영상 추가
 st.markdown("### 활동안내영상")
-st.video("https://youtu.be/qaPsk77sGso?si=cwRwT3RhUu4kQUwi")
+st.video("https://www.youtube.com/watch?v=UgBUfd_x3UQ")
