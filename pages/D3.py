@@ -5,15 +5,26 @@ import pathlib
 from openai import OpenAI
 import pandas as pd
 
-# secrets.toml 파일 경로
-secrets_path = pathlib.Path(__file__).parent.parent / ".streamlit/secrets.toml"
+# GitHub 아이콘 및 기타 UI 요소 숨기기
+hide_github_icon = """
+    <style>
+    .css-1jc7ptx, .e1ewe7hr3, .viewerBadge_container__1QSob,
+    .styles_viewerBadge__1yB5_, .viewerBadge_link__1S137,
+    .viewerBadge_text__1JaDK{ display: none; }
+    #MainMenu{ visibility: hidden; }
+    footer { visibility: hidden; }
+    header { visibility: hidden; }
+    </style>
+"""
+st.markdown(hide_github_icon, unsafe_allow_html=True)
 
-# secrets.toml 파일 읽기
-with open(secrets_path, "r") as f:
+# secrets.toml 파일 경로 설정 및 파일 읽기
+secrets_path = pathlib.Path(__file__).parent.parent / ".streamlit/secrets.toml"
+with open(secrets_path, "r", encoding="utf-8") as f:
     secrets = toml.load(f)
 
 # 여러 API 키 값 가져오기
-api_keys = [secrets.get(f"api_key{i}") for i in range(1, 4)]
+api_keys = [secrets.get(f"api_key{i}") for i in range(1, 4) if secrets.get(f"api_key{i}")]
 
 # 랜덤하게 API 키를 선택하여 OpenAI 클라이언트 초기화
 selected_api_key = random.choice(api_keys)
@@ -36,8 +47,8 @@ gauge_map = {
 # Streamlit 앱 인터페이스 구성
 st.title("개발한 수업의 적절성 평가하기 🎨")
 st.write("동료 선생님이 설계한 AIDT 사용 수업을 학생 입장에서 체험해 봅시다.")
-st.markdown("체험한 수업이 올바르고 적절한 것인지 아래 활동을 하며  평가해 봅시다. 개선해야 한다면 이때 사용하면 좋은  AIDT기능을 떠올려 보세요.")
-st.markdown("학생의 페르소나가 무작위로 생성됩니다. AI 디지털 교과서 활용 수업 설계의 원칙  카드를 이용해 학생에게 도움이 되는 수업을 설계하였는지 판단해 보세요.")
+st.markdown("체험한 수업이 올바르고 적절한 것인지 아래 활동을 하며 평가해 봅시다. 개선해야 한다면 이때 사용하면 좋은 AIDT기능을 떠올려 보세요.")
+st.markdown("학생의 페르소나가 무작위로 생성됩니다. AI 디지털 교과서 활용 수업 설계의 원칙 카드를 이용해 학생에게 도움이 되는 수업을 설계하였는지 판단해 보세요.")
 
 # 게임방법 강조
 st.markdown("""
@@ -61,48 +72,50 @@ st.markdown("""
 st.markdown("이 이미지생성도구의 사용 비용은 서울특별시교육청 AI 에듀테크 선도교사 운영비로 지출됩니다.")
 st.markdown("제작자: 서울특별시교육청융합과학교육원 정용석, 소일초등학교 김유진")
 
-
 # 입력 값 검증 및 이미지 생성
 if st.button("어떤 학생이 나타날까요?"):
-    # 무작위로 3개의 페르소나 특성 선택
-    selected_traits = random.sample(persona_traits, 3)
-    selected_gauges = {trait: random.choice([1, 2, 3, 4, 5]) for trait in selected_traits}
-    selected_learning_preference = random.choice(learning_preferences)
-    gender = random.choice(genders)
+    with st.spinner("이미지를 생성 중입니다... 잠시만 기다려주세요..."):
+        # 무작위로 3개의 페르소나 특성 선택
+        selected_traits = random.sample(persona_traits, 3)
+        selected_gauges = {trait: random.choice([1, 2, 3, 4, 5]) for trait in selected_traits}
+        selected_learning_preference = random.choice(learning_preferences)
+        gender = random.choice(genders)
 
-    # 한글 게이지 값을 프롬프트에 사용하기 위한 매핑
-    trait_descriptions = ", ".join([f"{trait} {gauge_map[gauge]}" for trait, gauge in selected_gauges.items()])
-    prompt = f"Caricature of an elementary school {gender}, cartoon style, reflecting traits such as {trait_descriptions}, learning preference: {selected_learning_preference}."
+        # 한글 게이지 값을 프롬프트에 사용하기 위한 매핑
+        trait_descriptions = ", ".join([f"{trait} {gauge_map[gauge]}" for trait, gauge in selected_gauges.items()])
+        prompt = f"Caricature of an elementary school {gender}, cartoon style, reflecting traits such as {trait_descriptions}, learning preference: {selected_learning_preference}."
 
-    # 컨테이너 생성
-    container = st.container()
+        # 컨테이너 생성
+        container = st.container()
 
-    with container:
-        # DALL-E API 호출 시도
-        try:
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="standard",
-                n=1,
-            )
-            image_url = response.data[0].url
+        with container:
+            # DALL-E API 호출 시도
+            try:
+                response = client.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt,
+                    size="1024x1024",
+                    quality="standard",
+                    n=1,
+                )
+                image_url = response.data[0].url
 
-            # 생성된 이미지 출력
-            st.image(image_url, caption="생성된 학생 페르소나 이미지")
+                # 생성된 이미지 출력
+                st.image(image_url, caption="생성된 학생 페르소나 이미지")
 
-        except Exception as e:
-            st.error(f"이미지 생성에 실패했습니다: {e}")
+            except Exception as e:
+                st.error(f"이미지 생성에 실패했습니다: {e}")
 
-        # 선택된 페르소나 특성 및 게이지 시각화
-        selected_gauges["학습선호도"] = selected_learning_preference
-        traits_df = pd.DataFrame(list(selected_gauges.items()), columns=['Trait', 'Gauge'])
-        st.bar_chart(traits_df.set_index('Trait'))
+            # 선택된 페르소나 특성 및 게이지 시각화
+            selected_gauges["학습선호도"] = selected_learning_preference
+            traits_df = pd.DataFrame(list(selected_gauges.items()), columns=['Trait', 'Gauge'])
+            st.bar_chart(traits_df.set_index('Trait'))
 
 # 세션 초기화 버튼
 if st.button("다시 시작하기"):
-    st.experimental_rerun()
+    with st.spinner("초기화 중입니다..."):
+        st.session_state.clear()
+        st.experimental_rerun()
 
 st.markdown("[D3 체크리스트카드 다운로드 - 인쇄하여 사용하세요.](https://drive.google.com/drive/folders/1G10VNydf2vMAKTOaBcFfGL4sG8OAKnp_?usp=drive_link)")
 
